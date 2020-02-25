@@ -30,19 +30,39 @@ export default class User extends Component {
 
   state = {
     stars: [],
-    loading: false,
+    loading: true,
+    perPage: 20,
+    page: 1,
   };
 
-  async componentDidMount() {
-    this.setState({ loading: true });
+  componentDidMount() {
+    this.loadData();
+  }
 
+  loadData = async (page = 1) => {
     const { navigation } = this.props;
     const user = navigation.getParam('user');
+    const { stars, perPage } = this.state;
 
-    const response = await api.get(`/users/${user.login}/starred`);
+    const response = await api.get(`/users/${user.login}/starred`, {
+      params: {
+        per_page: perPage,
+        page,
+      },
+    });
 
-    this.setState({ stars: response.data, loading: false });
-  }
+    this.setState({
+      stars: page > 1 ? [...stars, ...response.data] : response.data,
+      loading: false,
+      page,
+    });
+  };
+
+  loadMore = () => {
+    const { page } = this.state;
+
+    this.loadData(page + 1);
+  };
 
   render() {
     const { navigation } = this.props;
@@ -62,6 +82,8 @@ export default class User extends Component {
         ) : (
           <Stars
             data={stars}
+            onEndReachedThreshold={0.2}
+            onEndReached={this.loadMore}
             keyExtractor={star => String(star.id)}
             renderItem={({ item }) => (
               <Starred>
